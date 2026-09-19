@@ -1,35 +1,19 @@
-# CIFAR-10 CNN
+| 层 | 操作 | 输出尺寸 |
+| --- | --- | --- |
+| conv1 | Conv2d(3→6, 5×5) + ReLU + MaxPool(2, 2) | 6×14×14 |
+| conv2 | Conv2d(6→16, 5×5) + ReLU + MaxPool(2, 2) | 16×5×5 |
+| flatten | 展平 | 400 |
+| fc1 | Linear(400→120) + ReLU | 120 |
+| fc2 | Linear(120→84) + ReLU | 84 |
+| fc3 | Linear(84→10) | 10（各类 logits） |
 
-使用 PyTorch 和 torchvision 训练一个简单的卷积神经网络，对 CIFAR-10 的 10 类图片进行分类。
-
-## 目录
-
-```text
-cifar-10/
-├── README.md
-├── .gitignore
-├── .vscode/          # 编辑器配置
-├── .venv/            # 本地 Python 环境
-├── train.py          # 训练与评估入口
-├── data/             # CIFAR-10 数据和原始压缩包
-├── checkpoints/      # 模型权重（现有 cifar_net.pt）
-├── results/          # 预留的图表、实验结果目录
-├── notes/            # 学习笔记
-└── .archive/         # 整理前保留的重复数据与空入口文件，不提交 Git
-```
-
-## 运行
-
-在项目根目录的 PowerShell 中执行：
-
-```powershell
-.\.venv\Scripts\python.exe .\train.py
-```
-
-脚本会自动选择 CUDA 或 CPU，训练 20 轮，并输出整体和各类别测试准确率。数据路径固定为脚本所在目录下的 `data/`，不受终端当前目录影响；数据缺失时 torchvision 会尝试下载。
-
-依赖包括 `torch`、`torchvision`、`matplotlib`、`numpy`，已安装在本地虚拟环境中。
-
-当前脚本不自动保存权重或图表，`checkpoints/cifar_net.pt` 是整理前已有的模型文件。
-
-学习笔记见 [notes/note.md](notes/note.md)。数据、虚拟环境、权重和整理备份由根目录 `.gitignore` 忽略。
+- 卷积层默认 stride=1、无 padding，特征图经 5×5 卷积后每边减 4，再经 2×2 最大池化边长减半。
+- 最后一层不接 softmax，直接输出 logits，由 `nn.CrossEntropyLoss` 内部完成 log-softmax。
+- 全网络约 62,006 个可训练参数（含偏置）。
+## 训练配置
+- 损失函数：`nn.CrossEntropyLoss`（交叉熵）
+- 优化器：SGD，`lr=0.01`，`momentum=0.9`
+- batch size：128，共训练 20 个 epoch
+- 预处理：`ToTensor` 后用 `Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))` 归一化到 [-1, 1]
+- 设备：自动选择 CUDA（`cuda:0`）或 CPU
+- 评估：训练结束后输出测试集整体准确率，以及 10 个类别各自的准确率
